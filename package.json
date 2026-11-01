@@ -1,0 +1,46 @@
+{
+  "name": "navigatrum",
+  "productName": "NAVIGATRUM",
+  "version": "0.1.0",
+  "description": "Navigate beyond ordinary. A futuristic open-source desktop browser.",
+  "license": "MIT",
+  "author": "NAVIGATRUM-BROWSER",
+  "homepage": "https://github.com/NAVIGATRUM-BROWSER/Navigatrum#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NAVIGATRUM-BROWSER/Navigatrum.git"
+  },
+  "bugs": {
+    "url": "https://github.com/NAVIGATRUM-BROWSER/Navigatrum/issues"
+  },
+  "keywords": [
+    "browser",
+    "electron",
+    "react",
+    "typescript",
+    "vite"
+  ],
+  "main": "out/main/index.js",
+  "private": true,
+  "scripts": {
+    "dev": "electron-vite dev",
+    "dev:watch": "electron-vite dev --watch",
+    "build": "electron-vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.json",
+    "start": "npm run typecheck && npm run build && electron ."
+  },
+  "dependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "electron": "45.2.1",
+    "electron-vite": "^6.0.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.5"
+  }
+}
