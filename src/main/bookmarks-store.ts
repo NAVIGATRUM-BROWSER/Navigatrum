@@ -10,6 +10,16 @@ const MAX_BOOKMARKS = 500
 
 let bookmarks: Bookmark[] = []
 let nextId = 0
+/** Called after every mutation so live UI (renderer + Touch Bar) can refresh. */
+let changeListener: (() => void) | null = null
+
+export function subscribeBookmarks(listener: () => void): void {
+  changeListener = listener
+}
+
+function notifyChange(): void {
+  changeListener?.()
+}
 
 export function initBookmarks(): void {
   bookmarks = loadStore<Bookmark[]>(STORE_NAME, []).slice(0, MAX_BOOKMARKS)
@@ -47,11 +57,13 @@ export function addBookmark(url: string, title: string): Bookmark[] {
     if (bookmarks.length > MAX_BOOKMARKS) bookmarks.shift()
   }
   saveStore(STORE_NAME, bookmarks)
+  notifyChange()
   return listBookmarks()
 }
 
 export function removeBookmark(id: string): Bookmark[] {
   bookmarks = bookmarks.filter(b => b.id !== id)
   saveStore(STORE_NAME, bookmarks)
+  notifyChange()
   return listBookmarks()
 }

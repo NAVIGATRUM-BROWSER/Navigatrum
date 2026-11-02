@@ -97,7 +97,7 @@ export const DEFAULT_SETTINGS: Settings = {
 
 /* ---------- Internal pages (Milestone 3) ---------- */
 
-export type InternalRoute = 'history' | 'downloads' | 'settings'
+export type InternalRoute = 'history' | 'downloads' | 'settings' | 'ai'
 
 export function internalUrl(route: InternalRoute): string {
   return `navigatrum://${route}`
@@ -115,6 +115,8 @@ export function internalRouteLabel(route: string): string {
       return 'Downloads'
     case 'settings':
       return 'Settings'
+    case 'ai':
+      return 'NAVIGATRUM AI'
     default:
       return route
   }

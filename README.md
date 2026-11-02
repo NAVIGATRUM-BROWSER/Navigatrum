@@ -54,6 +54,8 @@ New in this milestone:
   downloads list).
 - **Data isolation** — browser data (bookmarks, history, settings, session)
   lives in the app's own `userData/store/*.json`, never exposed to websites.
+- **Data isolation** — browser data (bookmarks, history, settings, session)
+  lives in the app's own `userData/store/*.json`, never exposed to websites.
 
 ![Bookmarks menu](docs/screenshots/bookmarks.png)
 
@@ -62,6 +64,33 @@ New in this milestone:
 ![Downloads page](docs/screenshots/downloads.png)
 
 ![Settings page](docs/screenshots/settings.png)
+
+## Touch Bar + packaging (Milestone 4)
+
+NAVIGATRUM drives the MacBook Pro Touch Bar natively (Electron's TouchBar
+API — no fake bar inside the browser window):
+
+- **Tab switcher first** — every open tab appears in a scrolling scrubber
+  row with its live **favicon** and a compact title; tapping a tile
+  switches instantly. The row always mirrors the real tab registry —
+  closed tabs vanish immediately, new tabs appear immediately, and any
+  number of open tabs scrolls gracefully.
+- **Address chip** — Safari-style accent-colored chip showing the active
+  tab's host (or the internal page name); the dependable highlight for
+  the tab on screen.
+- **Controls** — Reload/Stop (⏳ flips to ■ while a page loads), bookmark
+  star, and a New Tab button.
+- **NAVIGATRUM AI** — the violet ✦ button opens the built-in
+  `navigatrum://ai` page: the landing point for AI Connections (M5).
+- **Brand glows** — switching, creating or closing tabs and starring a
+  bookmark pulse violet → blue (stepped colors: macOS exposes no
+  keyframe API for Touch Bar controls).
+- The compass app icon now ships with **rounded, transparent corners**
+  across the Dock, Finder and every in-app surface.
+
+Packaging: `npm run package` runs typecheck + production build and writes
+`release/NAVIGATRUM-darwin-x64/NAVIGATRUM.app` (Electron 45, unsigned) —
+double-click to run.
 
 ## Getting started
 
@@ -80,6 +109,7 @@ npm run dev        # start NAVIGATRUM in development mode
 | `npm run build`     | Production build (main + preload + renderer)        |
 | `npm run start`     | Typecheck, production build, then launch the app    |
 | `npm run typecheck` | TypeScript checks for main/preload and renderer     |
+| `npm run package`   | Typecheck + build + macOS app bundle into `release/` |
 
 ## Architecture
 
@@ -97,6 +127,8 @@ src/
 │   ├── bookmarks-store.ts
 │   ├── settings-store.ts validated settings + search-engine table
 │   ├── session-store.ts  saved tabs + active index
+│   ├── touch-bar.ts      native macOS Touch Bar + favicon cache
+│   ├── brand.ts          bundled brand artwork resolver
 │   ├── store.ts          buffered JSON persistence with quit-time flush
 │   └── error-page.ts     self-contained error page (data: URL)
 ├── preload/      sandboxed contextBridge exposing `window.navigatrum`
@@ -121,7 +153,7 @@ arguments against the real registries.
 - [x] M1 — Electron + React + TypeScript + Vite foundation
 - [x] M2 — Browser window, tabs, address bar, navigation
 - [x] M3 — Bookmarks, history, downloads, persistent sessions, settings
-- [ ] M4 — Compass branding polish + packaging
+- [x] M4 — Rounded compass branding, macOS .app packaging, native Touch Bar
 - [ ] M5 — AI Connections (secure provider/key management)
 - [ ] M6 — AI sidebar & assistant
 - [ ] M7 — Release engineering, docs, first GitHub release

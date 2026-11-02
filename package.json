@@ -27,13 +27,14 @@
     "dev:watch": "electron-vite dev --watch",
     "build": "electron-vite build",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.json",
-    "start": "npm run typecheck && npm run build && electron ."
-  },
-  "dependencies": {
+    "start": "npm run typecheck && npm run build && electron .",
+    "package": "npm run typecheck && npm run build && electron-packager . NAVIGATRUM --platform=darwin --arch=x64 --icon=assets/brand/navigatrum --app-bundle-id=io.github.navigatrum.browser --out=release --overwrite --prune=some --ignore='^/(src|docs|release|\\.github|README\\.md|\\.gitignore|\\.*|tsconfig.*\\.json|electron\\.vite\\.config\\.ts)$'"
+  },  "dependencies": {
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
+    "@electron/packager": "^20.3.0",
     "@types/node": "^26.0.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

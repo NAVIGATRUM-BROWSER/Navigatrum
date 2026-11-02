@@ -3,12 +3,19 @@
  * Navigate beyond ordinary.
  */
 import { app, Menu, nativeImage } from 'electron'
-import { fileURLToPath } from 'node:url'
 
-import { initBookmarks } from './bookmarks-store'
+import {
+  addBookmark,
+  hasBookmark,
+  initBookmarks,
+  listBookmarks,
+  removeBookmark
+} from './bookmarks-store'
+import { brandAsset } from './brand'
 import { createMainWindow } from './window'
 import { TabManager } from './tab-manager'
-import { registerIpc } from './ipc'
+import { registerIpc, broadcastBookmarks } from './ipc'
+import { TouchBarController } from './touch-bar'
 import {
   clearHistory,
   initHistory,
@@ -26,10 +33,6 @@ import {
 import { flushSync } from './store'
 
 const isDev = !app.isPackaged
-
-function brandAsset(name: string): string {
-  return fileURLToPath(new URL(`../../assets/brand/${name}`, import.meta.url))
-}
 
 /** Application menu: standard roles only; tab handling lives in accelerators. */
 function installMenu(): void {
@@ -105,6 +108,39 @@ void app.whenReady().then(() => {
   initDownloads()
   setDownloadFolder(getSettings().downloadPath)
 
+  /** Native Touch Bar (macOS with Touch Bar hardware only). */
+  const touchBarController =
+    process.platform === 'darwin'
+      ? new TouchBarController(mainWindow, {
+          activateTab: id => mainTabManager?.activate(id),
+          newTab: () => {
+            mainTabManager?.create('', true)
+            mainTabManager?.focusAddressBar()
+          },
+          reloadOrStop: (id, loading) => {
+            if (loading) mainTabManager?.stop(id)
+            else mainTabManager?.reload(id)
+          },
+          openAi: () => {
+            const id = mainTabManager?.activeTabId
+            if (id) mainTabManager?.navigate(id, 'navigatrum://ai')
+          },
+          toggleBookmark: (url, title) => {
+            if (!mainTabManager) return
+            if (hasBookmark(url)) {
+              const existing = listBookmarks().find(b => b.url === url)
+              if (existing) removeBookmark(existing.id)
+            } else {
+              addBookmark(url, title)
+            }
+            // The renderer star must react to Touch Bar toggles as well.
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              broadcastBookmarks(mainWindow)
+            }
+          }
+        })
+      : null
+
   mainTabManager = new TabManager(mainWindow, {
     resolve: input => resolveInput(input, getSettings().searchEngine),
     recordVisit: url => {
@@ -114,7 +150,15 @@ void app.whenReady().then(() => {
       if (getSettings().saveHistory) updateTitle(url, title)
     },
     downloadPath: _fallback => getSettings().downloadPath,
-    trackDownload: trackDownload
+    trackDownload: trackDownload,
+    ...(touchBarController
+      ? {
+          syncTouchBar: snapshot => touchBarController.sync(snapshot),
+          updateFavicon: (tabId, pageUrl, favicons) => {
+            touchBarController.noteFavicon(tabId, pageUrl, favicons)
+          }
+        }
+      : {})
   })
 
   mainWindow.on('resize', () => mainTabManager?.sync())
@@ -123,7 +167,6 @@ void app.whenReady().then(() => {
 
   registerIpc(mainTabManager, mainWindow)
   restoreSession(mainTabManager)
-
   app.on('activate', () => {
     const win = mainWindow
     if (win && !win.isDestroyed()) win.show()

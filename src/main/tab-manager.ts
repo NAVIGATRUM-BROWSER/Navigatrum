@@ -71,6 +71,14 @@ export class TabManager {
       downloadPath: (fallback: string) => string
       /** Track every fresh Electron DownloadItem. */
       trackDownload?: (item: Electron.DownloadItem) => void
+      /** Mirror state changes onto the macOS Touch Bar (may be omitted). */
+      syncTouchBar?: (snapshot: TabsSnapshot) => void
+      /** Feed a page's discovered favicons to the Touch Bar cache. */
+      updateFavicon?: (
+        tabId: string,
+        pageUrl: string,
+        favicons: string[]
+      ) => void
     }
   ) {
     // Every new download in any tab goes through our registry.
@@ -105,6 +113,13 @@ export class TabManager {
   broadcast(): void {
     if (!this.win.isDestroyed()) {
       this.win.webContents.send('tabs:state', this.snapshot())
+    }
+    // Same funnel covers create / close / rename / navigate / activate,
+    // which is exactly what the Touch Bar tab switcher must react to.
+    try {
+      this.services.syncTouchBar?.(this.snapshot())
+    } catch {
+      // The Touch Bar is cosmetic; browser state stays authoritative.
     }
   }
 
@@ -345,6 +360,13 @@ export class TabManager {
         this.services.updateHistoryTitle?.(tab.url, tab.title)
       }
       this.broadcast()
+    })
+
+    // Captured per tab id so favicons surface on the Touch Bar scrubber.
+    contents.on('page-favicon-updated', (_event, favicons) => {
+      if (favicons.length > 0) {
+        this.services.updateFavicon?.(tab.id, tab.url, favicons)
+      }
     })
 
     contents.on('did-navigate', (_event, url) => {

@@ -14,6 +14,7 @@ import {
 import { HomeScreen } from './components/HomeScreen'
 import { TitleBar } from './components/TitleBar'
 import { Toolbar } from './components/Toolbar'
+import { AiPage } from './components/pages/AiPage'
 import { DownloadsPage } from './components/pages/DownloadsPage'
 import { HistoryPage } from './components/pages/HistoryPage'
 import { SettingsPage } from './components/pages/SettingsPage'
@@ -123,6 +124,8 @@ export default function App(): JSX.Element {
     page = <DownloadsPage tabId={active.id} />
   } else if (internalRoute === 'settings' && active) {
     page = <SettingsPage />
+  } else if (internalRoute === 'ai' && active) {
+    page = <AiPage />
   } else if (atHome && active) {
     page = (
       <HomeScreen

@@ -943,3 +943,37 @@ body {
 .toggle input:checked + .track::after {
   transform: translateX(16px);
 }
+
+/* ---------- NAVIGATRUM AI (placeholder) ---------- */
+
+.ai-panel {
+  max-width: 480px;
+  margin: 40px auto 0;
+  text-align: center;
+}
+
+.ai-emblem {
+  width: 96px;
+  height: 96px;
+  border-radius: 22px;
+  filter: drop-shadow(0 6px 18px rgba(59, 130, 246, 0.35));
+}
+
+.ai-headline {
+  margin: 18px 0 8px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ai-copy {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.ai-status {
+  margin-top: 14px;
+  font-size: 12px;
+  color: var(--accent-violet);
+}

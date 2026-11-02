@@ -61,11 +61,12 @@ const tabGuard = async (
   await handler(id)
 }
 
-export function registerIpc(tabManager: TabManager, win: BrowserWindow): void {
-  const broadcastBookmarks = (): void => {
-    if (!win.isDestroyed()) win.webContents.send('data:bookmarks', listBookmarks())
-  }
+/** Shared so Touch Bar bookmark toggles refresh the renderer star as well. */
+export function broadcastBookmarks(win: BrowserWindow): void {
+  if (!win.isDestroyed()) win.webContents.send('data:bookmarks', listBookmarks())
+}
 
+export function registerIpc(tabManager: TabManager, win: BrowserWindow): void {
   // Live download progress for the toolbar badge + downloads page.
   subscribe(list => {
     if (!win.isDestroyed()) win.webContents.send('downloads:state', list)
@@ -117,14 +118,14 @@ export function registerIpc(tabManager: TabManager, win: BrowserWindow): void {
 
   ipcMain.handle('bookmarks:add', (_event, url?: unknown, title?: unknown) => {
     addBookmark(cleanUrl(url), typeof title === 'string' ? title.slice(0, 200) : '')
-    broadcastBookmarks()
+    broadcastBookmarks(win)
   })
 
   ipcMain.handle('bookmarks:remove', (_event, id: unknown) => {
     const valid = cleanId(id, 'bm-')
     if (!valid) throw new Error('Invalid bookmark id')
     removeBookmark(valid)
-    broadcastBookmarks()
+    broadcastBookmarks(win)
   })
 
   /* ---------- History ---------- */
