@@ -1,14 +1,22 @@
 /**
  * NAVIGATRUM chrome root. Mirrors the live TabsSnapshot from the main
- * process and renders the tab strip, toolbar, home screen and loading bar.
+ * process and renders the tab strip, toolbar, internal pages, home screen
+ * and loading bar.
  */
 import { useEffect, useState, type JSX } from 'react'
 
-import type { TabsSnapshot } from '@shared/types'
+import {
+  isInternalUrl,
+  type InternalRoute,
+  type TabsSnapshot
+} from '@shared/types'
 
 import { HomeScreen } from './components/HomeScreen'
 import { TitleBar } from './components/TitleBar'
 import { Toolbar } from './components/Toolbar'
+import { DownloadsPage } from './components/pages/DownloadsPage'
+import { HistoryPage } from './components/pages/HistoryPage'
+import { SettingsPage } from './components/pages/SettingsPage'
 
 export default function App(): JSX.Element {
   const [snapshot, setSnapshot] = useState<TabsSnapshot>({
@@ -34,6 +42,10 @@ export default function App(): JSX.Element {
 
   const active = snapshot.tabs.find(tab => tab.id === snapshot.activeId) ?? null
   const atHome = active !== null && active.url === ''
+  const internalRoute =
+    active !== null && isInternalUrl(active.url)
+      ? (active.url.slice('navigatrum://'.length) as InternalRoute)
+      : null
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -78,6 +90,18 @@ export default function App(): JSX.Element {
           event.preventDefault()
           void api.forward(activeId)
           break
+        case 'y':
+          event.preventDefault()
+          void api.navigate(activeId, 'navigatrum://history')
+          break
+        case 'j':
+          event.preventDefault()
+          void api.navigate(activeId, 'navigatrum://downloads')
+          break
+        case ',':
+          event.preventDefault()
+          void api.navigate(activeId, 'navigatrum://settings')
+          break
         default:
           if (/^[1-9]$/.test(event.key)) {
             const nth = snapshot.tabs[Number(event.key) - 1]
@@ -92,20 +116,31 @@ export default function App(): JSX.Element {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [snapshot])
 
+  let page: JSX.Element
+  if (internalRoute === 'history' && active) {
+    page = <HistoryPage tabId={active.id} />
+  } else if (internalRoute === 'downloads' && active) {
+    page = <DownloadsPage tabId={active.id} />
+  } else if (internalRoute === 'settings' && active) {
+    page = <SettingsPage />
+  } else if (atHome && active) {
+    page = (
+      <HomeScreen
+        onSubmit={value => {
+          void window.navigatrum.navigate(active.id, value)
+        }}
+      />
+    )
+  } else {
+    page = <div className="content-gap" aria-hidden />
+  }
+
   return (
     <div className="app">
       <TitleBar snapshot={snapshot} />
       <Toolbar tab={active} />
       <div className={active?.loading ? 'loading-bar active' : 'loading-bar'} />
-      {atHome ? (
-        <HomeScreen
-          onSubmit={value => {
-            if (active) void window.navigatrum.navigate(active.id, value)
-          }}
-        />
-      ) : (
-        <div className="content-gap" aria-hidden />
-      )}
+      {page}
     </div>
   )
 }

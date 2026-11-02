@@ -5,9 +5,25 @@
 import { app, Menu, nativeImage } from 'electron'
 import { fileURLToPath } from 'node:url'
 
+import { initBookmarks } from './bookmarks-store'
 import { createMainWindow } from './window'
 import { TabManager } from './tab-manager'
 import { registerIpc } from './ipc'
+import {
+  clearHistory,
+  initHistory,
+  recordVisit,
+  updateTitle
+} from './history-store'
+import { resolveInput } from './navigation'
+import { getSettings, initSettings } from './settings-store'
+import { loadSession, saveSession } from './session-store'
+import {
+  initDownloads,
+  setDownloadFolder,
+  trackDownload
+} from './downloads'
+import { flushSync } from './store'
 
 const isDev = !app.isPackaged
 
@@ -83,14 +99,30 @@ void app.whenReady().then(() => {
   }
 
   mainWindow = createMainWindow()
-  mainTabManager = new TabManager(mainWindow)
+  initSettings()
+  initBookmarks()
+  initHistory()
+  initDownloads()
+  setDownloadFolder(getSettings().downloadPath)
+
+  mainTabManager = new TabManager(mainWindow, {
+    resolve: input => resolveInput(input, getSettings().searchEngine),
+    recordVisit: url => {
+      if (getSettings().saveHistory) recordVisit(url)
+    },
+    updateHistoryTitle: (url, title) => {
+      if (getSettings().saveHistory) updateTitle(url, title)
+    },
+    downloadPath: _fallback => getSettings().downloadPath,
+    trackDownload: trackDownload
+  })
 
   mainWindow.on('resize', () => mainTabManager?.sync())
   mainWindow.on('enter-full-screen', () => mainTabManager?.sync())
   mainWindow.on('leave-full-screen', () => mainTabManager?.sync())
 
-  registerIpc(mainTabManager)
-  mainTabManager.create('', true)
+  registerIpc(mainTabManager, mainWindow)
+  restoreSession(mainTabManager)
 
   app.on('activate', () => {
     const win = mainWindow
@@ -101,3 +133,29 @@ void app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   app.quit()
 })
+
+app.on('before-quit', () => {
+  if (mainTabManager) saveSession(mainTabManager.snapshot())
+})
+
+app.on('will-quit', () => {
+  flushSync()
+})
+
+/** Restore the last session if the user kept that setting enabled. */
+function restoreSession(manager: TabManager): void {
+  const saved = loadSession()
+  const shouldRestore = saved !== null && getSettings().restoreSession
+  if (shouldRestore && saved) {
+    const created: string[] = []
+    for (const tab of saved.tabs) {
+      created.push(manager.create(tab.url, false))
+    }
+    const target = created[saved.activeIndex] ?? created[0]
+    if (target) {
+      manager.activate(target)
+      return
+    }
+  }
+  manager.create('', true)
+}

@@ -8,12 +8,21 @@
  * The renderer only ever receives plain TabState snapshots through IPC —
  * it has no references to webContents objects.
  */
-import { BrowserWindow, WebContentsView } from 'electron'
+import { BrowserWindow, WebContentsView, app } from 'electron'
+import { existsSync } from 'node:fs'
+import { join, extname, basename } from 'node:path'
+
 import { TOP_CHROME_HEIGHT } from '@shared/constants'
+import {
+  isInternalUrl,
+  internalRouteLabel
+} from '@shared/types'
 import type { TabError, TabsSnapshot, TabState } from '@shared/types'
 
+import { setDownloadFolder, activeDownloadFor } from './downloads'
 import { buildErrorPageDataUrl } from './error-page'
 import { resolveInput } from './navigation'
+import { getSettings } from './settings-store'
 
 interface TabRecord {
   id: string
@@ -32,12 +41,41 @@ function randomTabId(): string {
   return `tab-${crypto.randomUUID()}`
 }
 
+/** Never overwrite an existing file in the download folder. */
+function uniqueSavePath(folder: string, filename: string): string {
+  const safeName = filename.replace(/[/\\:\0]/g, '_') || 'download'
+  const ext = extname(safeName)
+  const base = basename(safeName, ext)
+  let candidate = join(folder, safeName)
+  for (let i = 1; existsSync(candidate); i += 1) {
+    candidate = join(folder, `${base} (${i})${ext}`)
+  }
+  return candidate
+}
+
 export class TabManager {
   private readonly tabs = new Map<string, TabRecord>()
   private readonly order: string[] = []
   private activeId: string | null = null
 
-  constructor(private readonly win: BrowserWindow) {}
+  constructor(
+    private readonly win: BrowserWindow,
+    private readonly services: {
+      /** Map address-bar input to a URL given the user's search engine. */
+      resolve: (input: string) => string
+      /** Record a real page visit in history (settings may disable it). */
+      recordVisit?: (url: string) => void
+      /** Backfill a page title for a recorded history visit. */
+      updateHistoryTitle?: (url: string, title: string) => void
+      /** Default path for new downloads. */
+      downloadPath: (fallback: string) => string
+      /** Track every fresh Electron DownloadItem. */
+      trackDownload?: (item: Electron.DownloadItem) => void
+    }
+  ) {
+    // Every new download in any tab goes through our registry.
+    this.watchDownloads()
+  }
 
   get activeTabId(): string | null {
     return this.activeId
@@ -133,12 +171,22 @@ export class TabManager {
     const tab = this.tabs.get(id)
     if (!tab) return
 
-    const url = resolveInput(input)
+    const url = this.services.resolve(input)
     tab.error = null
     tab.url = url
 
     if (url === '') {
       tab.title = 'New Tab'
+      this.sync()
+      this.broadcast()
+      return
+    }
+
+    // Internal chrome pages (history / downloads / settings) live in the
+    // renderer already; no web view is involved, so back/forward keep
+    // working through the untouched view history.
+    if (isInternalUrl(url)) {
+      tab.title = internalRouteLabel(url.replace('navigatrum://', ''))
       this.sync()
       this.broadcast()
       return
@@ -151,6 +199,11 @@ export class TabManager {
     view.webContents
       .loadURL(url)
       .catch((err: Error) => {
+        // Download-triggered navigations abort the load with generic codes
+        // ("ERR_FAILED (-2) loading …", "net::ERR_ABORTED …") while
+        // Chromium hands off to will-download — not a page failure.
+        if (/\bERR_(ABORTED|FAILED)\b/.test(err.message)) return
+        if (activeDownloadFor(url)) return
         // Invalid/unreachable URLs land on the built-in error page.
         this.fail(tab, -1, err.message, url)
       })
@@ -224,6 +277,24 @@ export class TabManager {
     return this.tabs.get(id)?.view ?? null
   }
 
+  /**
+   * Route every download through our registry. If the user configured a
+   * download folder we save silently there; otherwise save into the system
+   * Downloads folder. Filenames are de-duplicated so nothing is overwritten.
+   */
+  private watchDownloads(): void {
+    const { session } = this.win.webContents
+    session.on('will-download', (_event, item) => {
+      const folder =
+        this.services.downloadPath(app.getPath('downloads')) ||
+        app.getPath('downloads')
+      // Keep downloads.ts' folder-aware open action in sync.
+      setDownloadFolder(getSettings().downloadPath)
+      item.setSavePath(uniqueSavePath(folder, item.getFilename()))
+      this.services.trackDownload?.(item)
+    })
+  }
+
   /** Lazily create a tab's WebContentsView with hardened webPreferences. */
   private ensureView(tab: TabRecord): void {
     if (tab.view) return
@@ -270,6 +341,9 @@ export class TabManager {
 
     contents.on('page-title-updated', (_event, title) => {
       if (tab.url !== '' && title) tab.title = title
+      if (!tab.url.startsWith('data:') && !isInternalUrl(tab.url)) {
+        this.services.updateHistoryTitle?.(tab.url, tab.title)
+      }
       this.broadcast()
     })
 
@@ -279,6 +353,7 @@ export class TabManager {
       tab.url = url
       tab.error = null
       if (tab.title === 'New Tab') tab.title = ''
+      if (!isInternalUrl(url)) this.services.recordVisit?.(url)
       this.broadcast()
     })
 
@@ -334,7 +409,11 @@ export class TabManager {
   sync(): void {
     if (this.win.isDestroyed()) return
 
-    const active = this.activeId ? this.tabs.get(this.activeId) : null
+    const active = (this.activeId ? this.tabs.get(this.activeId) : null) ?? null
+    const showActive =
+      active !== null &&
+      active.url !== '' &&
+      !isInternalUrl(active.url)
 
     for (const tab of this.tabs.values()) {
       if (tab.view && tab !== active) {
@@ -342,7 +421,12 @@ export class TabManager {
       }
     }
 
-    if (active && active.url !== '') {
+    // Internal chrome pages render in the renderer: never show a web view.
+    if (active && !showActive && active.view) {
+      this.win.contentView.removeChildView(active.view)
+    }
+
+    if (active && showActive) {
       this.ensureView(active)
       active.view!.setBounds(this.contentBounds())
       this.win.contentView.addChildView(active.view!)
@@ -389,6 +473,18 @@ export class TabManager {
     }
     if (input.meta && input.key.toLowerCase() === 'l') {
       this.focusAddressBar()
+      return true
+    }
+    if (activeId && input.meta && input.key.toLowerCase() === 'y') {
+      this.navigate(activeId, 'navigatrum://history')
+      return true
+    }
+    if (activeId && input.meta && input.key.toLowerCase() === 'j') {
+      this.navigate(activeId, 'navigatrum://downloads')
+      return true
+    }
+    if (activeId && input.meta && input.key === ',') {
+      this.navigate(activeId, 'navigatrum://settings')
       return true
     }
     if (input.control && input.key === 'Tab') {

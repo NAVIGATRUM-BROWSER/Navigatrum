@@ -14,7 +14,7 @@ export function TitleBar({ snapshot }: TitleBarProps): JSX.Element {
   return (
     <header className="titlebar">
       <div className="brand">
-        <img className="brand-mark" src="./compass.jpeg" alt="NAVIGATRUM" />
+        <img className="brand-mark" src="./compass.png" alt="NAVIGATRUM" />
         <span className="brand-name">NAVIGATRUM</span>
       </div>
 

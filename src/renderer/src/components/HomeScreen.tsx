@@ -31,7 +31,7 @@ export function HomeScreen({ onSubmit }: HomeScreenProps): JSX.Element {
   return (
     <main className="home">
       <div className="home-glow" aria-hidden />
-      <img className="home-compass" src="./compass.jpeg" alt="" />
+      <img className="home-compass" src="./compass.png" alt="" />
       <h1 className="home-title">NAVIGATRUM</h1>
       <p className="home-tagline">Navigate beyond ordinary.</p>
 
@@ -41,7 +41,7 @@ export function HomeScreen({ onSubmit }: HomeScreenProps): JSX.Element {
           type="text"
           spellCheck={false}
           autoComplete="off"
-          placeholder="Search DuckDuckGo or enter a URL"
+          placeholder="Search or enter a URL"
           value={query}
           onChange={event => setQuery(event.target.value)}
         />
@@ -58,10 +58,13 @@ export function HomeScreen({ onSubmit }: HomeScreenProps): JSX.Element {
           <kbd>⌘L</kbd> address
         </span>
         <span className="hint-chip">
-          <kbd>⌘R</kbd> reload
+          <kbd>⌘Y</kbd> history
         </span>
         <span className="hint-chip">
-          <kbd>⌘W</kbd> close
+          <kbd>⌘J</kbd> downloads
+        </span>
+        <span className="hint-chip">
+          <kbd>⌘,</kbd> settings
         </span>
       </div>
     </main>
