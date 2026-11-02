@@ -92,6 +92,38 @@ Packaging: `npm run package` runs typecheck + production build and writes
 `release/NAVIGATRUM-darwin-x64/NAVIGATRUM.app` (Electron 45, unsigned) —
 double-click to run.
 
+## AI Connections (Milestone 5)
+
+The `✦ AI` page (and Settings → "AI Connections →") is now the unified
+provider connection surface — the infrastructure the future AI assistant
+will be built on (chat itself is Milestone 6):
+
+- **One simple connect flow** — pick a provider (or let NAVIGATRUM detect
+  it from the key's unique prefix), paste one API key, press Connect.
+  Ollama and generic OpenAI-compatible endpoints accept a custom base URL;
+  Ollama needs no key at all.
+- **Verified connections only** — a key is probed against that provider's
+  **official** models/account endpoint (OpenAI, Google Gemini, Anthropic,
+  OpenRouter, NVIDIA NIM, Groq, Together AI, Mistral, Cohere, xAI, Ollama)
+  and a connection is only recorded after an HTTP 200 verification. Invalid
+  keys, rate limits, network failures and provider outages each map to a
+  distinct, human-readable error; a key is never sent to any endpoint
+  outside its own provider.
+- **Keys stay in the main process** — after verification, keys are encrypted
+  through Electron `safeStorage` (macOS Keychain) and stored as blobs in
+  the app's private userData. The renderer never sees key material; every
+  IPC call is validated and length-capped; nothing is logged or hardcoded.
+- **Connected providers list** — live status with Cloud/Local/Default
+  badges, verification time and model counts, plus Disconnect and
+  Replace-key (re-verified before the stored key is swapped).
+- **Model management** — the provider's real model list is fetched and
+  cached, a default provider + model can be chosen, and local (Ollama) vs
+  cloud models are labeled explicitly.
+- **Provider-independent service layer** — `src/main/ai/` separates the
+  provider registry, encrypted key vault and connections service, so the
+  Milestone 6 assistant can switch providers without any UI or browser
+  integration change.
+
 ## Getting started
 
 Requirements: **macOS 13+** (Intel or Apple Silicon), **Node.js ≥ 22.12**.
@@ -120,9 +152,15 @@ src/
 │   ├── window.ts         hiddenInset BrowserWindow + secure webPreferences
 │   ├── tab-manager.ts    WebContentsView tabs, history hooks, downloads
 │   ├── ipc.ts            validated IPC surface (tabs/bookmarks/history/
-│   │                     downloads/settings/data)
+│   │                     downloads/settings/data/ai connections)
 │   ├── navigation.ts     URL vs. search resolution (per chosen engine)
 │   ├── downloads.ts      download registry, lifecycle, open/cancel/reveal
+│   ├── ai/               AI Connections (Milestone 5)
+│   │   ├── providers.ts  provider registry: official verify/models
+│   │   │                 endpoints, auth styles, key-prefix auto-detection
+│   │   ├── keys.ts       safeStorage-encrypted key vault (no plaintext)
+│   │   └── connections.ts  provider-independent service: verify, connect,
+│   │                     models, defaults — the future assistant's API
 │   ├── history-store.ts  visit recording, titles, capped persistence
 │   ├── bookmarks-store.ts
 │   ├── settings-store.ts validated settings + search-engine table
@@ -133,7 +171,8 @@ src/
 │   └── error-page.ts     self-contained error page (data: URL)
 ├── preload/      sandboxed contextBridge exposing `window.navigatrum`
 ├── renderer/     React chrome: tab strip, toolbar, address bar, home
-│                 screen, and the built-in history/downloads/settings pages
+│                 screen, and the built-in history/downloads/settings/ai
+│                 pages
 └── shared/       constants + types shared across processes
 assets/brand/     compass artwork, generated macOS .icns
 ```
@@ -154,7 +193,7 @@ arguments against the real registries.
 - [x] M2 — Browser window, tabs, address bar, navigation
 - [x] M3 — Bookmarks, history, downloads, persistent sessions, settings
 - [x] M4 — Rounded compass branding, macOS .app packaging, native Touch Bar
-- [ ] M5 — AI Connections (secure provider/key management)
+- [x] M5 — AI Connections (secure provider/key management)
 - [ ] M6 — AI sidebar & assistant
 - [ ] M7 — Release engineering, docs, first GitHub release
 

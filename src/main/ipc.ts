@@ -14,6 +14,17 @@ import {
 
 import { addBookmark, listBookmarks, removeBookmark } from './bookmarks-store'
 import {
+  connectAi,
+  disconnectAi,
+  getAiDefault,
+  initAiConnections,
+  listAiConnections,
+  listAiModels,
+  listAiProviders,
+  replaceAiKey,
+  setAiDefault
+} from './ai/connections'
+import {
   cancelDownload,
   clearFinished,
   listDownloads,
@@ -217,4 +228,71 @@ export function registerIpc(tabManager: TabManager, win: BrowserWindow): void {
   ipcMain.handle('data:clearDownloads', () => {
     clearFinished()
   })
+
+  /* ---------- AI Connections (Milestone 5) ---------- */
+
+  const MAX_KEY_LENGTH = 2048
+  const MAX_BASE_URL_LENGTH = 2048
+
+  const cleanKey = (value: unknown): string =>
+    typeof value === 'string' ? value.slice(0, MAX_KEY_LENGTH) : ''
+  const cleanBaseUrl = (value: unknown): string =>
+    typeof value === 'string' ? value.slice(0, MAX_BASE_URL_LENGTH) : ''
+  const cleanProviderId = (value: unknown): string | null =>
+    typeof value === 'string' && value.length <= 32 && value.trim() !== ''
+      ? value
+      : null
+
+  // Connections (init) live in the main process; the renderer only ever
+  // sees sanitized metadata — key material never crosses IPC.
+  initAiConnections()
+
+  ipcMain.handle('ai:providers', () => listAiProviders())
+
+  ipcMain.handle(
+    'ai:connect',
+    (_event, providerId: unknown, apiKey: unknown, baseUrl: unknown) => {
+      const id = cleanProviderId(providerId)
+      if (!id) throw new Error('Invalid provider id')
+      return connectAi(id, cleanKey(apiKey), cleanBaseUrl(baseUrl))
+    }
+  )
+
+  ipcMain.handle(
+    'ai:replaceKey',
+    (_event, providerId: unknown, apiKey: unknown) => {
+      const id = cleanProviderId(providerId)
+      if (!id) throw new Error('Invalid provider id')
+      return replaceAiKey(id, cleanKey(apiKey))
+    }
+  )
+
+  ipcMain.handle('ai:connections', () => listAiConnections())
+
+  ipcMain.handle('ai:disconnect', (_event, providerId: unknown) => {
+    const id = cleanProviderId(providerId)
+    if (!id) throw new Error('Invalid provider id')
+    return disconnectAi(id)
+  })
+
+  ipcMain.handle('ai:models', (_event, providerId: unknown) => {
+    const id = cleanProviderId(providerId)
+    if (!id) throw new Error('Invalid provider id')
+    return listAiModels(id)
+  })
+
+  ipcMain.handle('ai:getDefault', () => getAiDefault())
+
+  ipcMain.handle(
+    'ai:setDefault',
+    (_event, providerId: unknown, modelId: unknown) => {
+      const id = cleanProviderId(providerId)
+      const model =
+        typeof modelId === 'string' && modelId.length <= 256
+          ? modelId
+          : null
+      if (!id || model === null) throw new Error('Invalid AI default')
+      return setAiDefault(id, model)
+    }
+  )
 }

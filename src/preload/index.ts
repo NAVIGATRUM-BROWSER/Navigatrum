@@ -6,7 +6,15 @@
  * ipcRenderer, no secrets ever cross this boundary.
  */
 import { contextBridge, ipcRenderer } from 'electron'
-import type { NaviApi, TabsSnapshot } from '@shared/types'
+import type {
+  AiConnectionInfo,
+  AiDefault,
+  AiModelInfo,
+  AiProviderInfo,
+  AiResult,
+  NaviApi,
+  TabsSnapshot
+} from '@shared/types'
 
 function subscribe<T>(
   channel: string,
@@ -63,7 +71,20 @@ const api: NaviApi = {
   /* Clearing browsing data */
   clearCache: () => ipcRenderer.invoke('data:clearCache'),
   clearFinishedDownloads: () =>
-    ipcRenderer.invoke('data:clearDownloads')
+    ipcRenderer.invoke('data:clearDownloads'),
+
+  /* AI Connections — sanitized metadata only; keys never cross this bridge */
+  listAiProviders: () => ipcRenderer.invoke('ai:providers'),
+  connectAi: (providerId, apiKey, baseUrl) =>
+    ipcRenderer.invoke('ai:connect', providerId, apiKey, baseUrl),
+  replaceAiKey: (providerId, apiKey) =>
+    ipcRenderer.invoke('ai:replaceKey', providerId, apiKey),
+  listAiConnections: () => ipcRenderer.invoke('ai:connections'),
+  disconnectAi: providerId => ipcRenderer.invoke('ai:disconnect', providerId),
+  listAiModels: providerId => ipcRenderer.invoke('ai:models', providerId),
+  getAiDefault: () => ipcRenderer.invoke('ai:getDefault'),
+  setAiDefault: (providerId, modelId) =>
+    ipcRenderer.invoke('ai:setDefault', providerId, modelId)
 }
 
 contextBridge.exposeInMainWorld('navigatrum', api)

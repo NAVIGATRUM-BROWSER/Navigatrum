@@ -99,6 +99,64 @@ export const DEFAULT_SETTINGS: Settings = {
 
 export type InternalRoute = 'history' | 'downloads' | 'settings' | 'ai'
 
+/* ---------- AI Connections (Milestone 5) ---------- */
+
+/** Public, non-secret metadata about a supported provider. */
+export interface AiProviderInfo {
+  id: string
+  label: string
+  /** Connects without an API key (local runtimes). */
+  localOnly: boolean
+  /** Runs on this machine (Ollama) rather than in the cloud. */
+  local: boolean
+  /** Accepts a custom base URL (Ollama, generic OpenAI-compatible). */
+  customBaseUrl: boolean
+  /** Default base URL to show as a placeholder. */
+  defaultBaseUrl: string
+  /** API key prefixes that uniquely identify this provider ('auto'). */
+  keyPrefixes: string[]
+  signupUrl: string
+}
+
+/** A verified connection, sanitized — never carries key material. */
+export interface AiConnectionInfo {
+  providerId: string
+  label: string
+  /** When the key last passed the provider's official verification. */
+  verifiedAt: number
+  baseUrl: string
+  local: boolean
+  /** Cached count from the last successful model listing. */
+  modelsCount: number
+}
+
+export interface AiModelInfo {
+  id: string
+  label: string
+  local: boolean
+}
+
+export interface AiDefault {
+  providerId: string | null
+  modelId: string | null
+}
+
+export type AiErrorType =
+  | 'invalid-key'
+  | 'rate-limited'
+  | 'network'
+  | 'provider-unavailable'
+  | 'bad-input'
+  | 'storage'
+
+export interface AiResult<T> {
+  ok: boolean
+  data?: T
+  error?: {
+    type: AiErrorType
+    message: string
+  }
+}
 export function internalUrl(route: InternalRoute): string {
   return `navigatrum://${route}`
 }
@@ -176,4 +234,27 @@ export interface NaviApi {
   /* Clearing browsing data */
   clearCache(): Promise<void>
   clearFinishedDownloads(): Promise<void>
+
+  /* AI Connections (Milestone 5) */
+  listAiProviders(): Promise<AiProviderInfo[]>
+  /** Connect (or re-verify) a provider; providerId 'auto' detects by key prefix. */
+  connectAi(
+    providerId: string,
+    apiKey: string,
+    baseUrl: string
+  ): Promise<AiResult<AiConnectionInfo>>
+  /** Re-verify and swap the key of an existing connection. */
+  replaceAiKey(
+    providerId: string,
+    apiKey: string
+  ): Promise<AiResult<AiConnectionInfo>>
+  listAiConnections(): Promise<AiConnectionInfo[]>
+  disconnectAi(providerId: string): Promise<AiConnectionInfo[]>
+  /** Fetch the provider's model list (live, cached in main). */
+  listAiModels(
+    providerId: string
+  ): Promise<AiResult<AiModelInfo[]>>
+  getAiDefault(): Promise<AiDefault>
+  /** Only accepts an already-connected provider; model is freeform but choices come from listAiModels. */
+  setAiDefault(providerId: string, modelId: string): Promise<AiResult<AiDefault>>
 }

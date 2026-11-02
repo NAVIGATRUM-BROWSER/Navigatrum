@@ -10,6 +10,10 @@ import type { SearchEngineId, Settings } from '@shared/types'
 
 import { PageShell } from './PageShell'
 
+interface SettingsPageProps {
+  /** Used to route the user to the AI Connections page. */
+  tabId: string | null
+}
 const ENGINES: Array<{ id: SearchEngineId; name: string }> = [
   { id: 'duckduckgo', name: 'DuckDuckGo' },
   { id: 'google', name: 'Google' },
@@ -17,7 +21,7 @@ const ENGINES: Array<{ id: SearchEngineId; name: string }> = [
   { id: 'brave', name: 'Brave' }
 ]
 
-export function SettingsPage(): JSX.Element {
+export function SettingsPage({ tabId }: SettingsPageProps): JSX.Element {
   const [settings, setSettings] = useState<Settings | null>(null)
   const [homepageDraft, setHomepageDraft] = useState('')
   const [feedback, setFeedback] = useState('')
@@ -58,7 +62,19 @@ export function SettingsPage(): JSX.Element {
     <PageShell
       title="Settings"
       actions={
-        feedback ? <span className="settings-feedback">{feedback}</span> : null
+        <>
+          {feedback ? <span className="settings-feedback">{feedback}</span> : null}
+          {tabId ? (
+            <button
+              className="btn"
+              onClick={() => {
+                void window.navigatrum.navigate(tabId, 'navigatrum://ai')
+              }}
+            >
+              ✦ AI Connections →
+            </button>
+          ) : null}
+        </>
       }
     >
       {/* Homepage */}

@@ -944,6 +944,175 @@ body {
   transform: translateX(16px);
 }
 
+/* ---------- AI Connections (Milestone 5) ---------- */
+
+.ai-connect {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ai-connect-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.ai-connect-row .setting-select {
+  width: 100%;
+}
+
+.ai-connect-actions {
+  justify-content: flex-start;
+}
+
+.ai-key-input {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+.ai-key-input::placeholder {
+  color: var(--text-dim);
+  font-family: inherit;
+}
+
+.ai-key-input:disabled {
+  opacity: 0.55;
+}
+
+.ai-key-input:focus {
+  outline: none;
+  border-color: rgba(59, 130, 246, 0.55);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18);
+}
+
+.ai-hint-link {
+  font-size: 12px;
+  color: #93c5fd;
+  text-decoration: none;
+}
+
+.ai-hint-link:hover {
+  text-decoration: underline;
+}
+
+.ai-hint {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.ai-status-row {
+  margin: 0;
+  font-size: 12.5px;
+}
+
+.ai-status-row.ok {
+  color: #34d399;
+}
+
+.ai-status-row.fail {
+  color: #f87171;
+}
+
+.ai-status-row.inline {
+  margin-left: 4px;
+}
+
+.ai-connection-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ai-connection-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ai-connection-row.default {
+  border-color: rgba(59, 130, 246, 0.45);
+}
+
+.ai-connection-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ai-connection-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ai-connection-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.badge.cloud {
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.16);
+}
+
+.badge.local {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.14);
+}
+
+.badge.default {
+  color: #a78bfa;
+  background: rgba(139, 92, 246, 0.16);
+}
+
+.ai-verified {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.ai-connection-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ai-replace-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
 /* ---------- NAVIGATRUM AI (placeholder) ---------- */
 
 .ai-panel {

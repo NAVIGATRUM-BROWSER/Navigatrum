@@ -123,7 +123,7 @@ export default function App(): JSX.Element {
   } else if (internalRoute === 'downloads' && active) {
     page = <DownloadsPage tabId={active.id} />
   } else if (internalRoute === 'settings' && active) {
-    page = <SettingsPage />
+    page = <SettingsPage tabId={active.id} />
   } else if (internalRoute === 'ai' && active) {
     page = <AiPage />
   } else if (atHome && active) {
